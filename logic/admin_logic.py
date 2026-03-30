@@ -1,7 +1,8 @@
 import logging
+import asyncio
 from database.engine import Session
-from database.models import Item, Product, Buyer, Seed
-from sqlalchemy import select
+from database.models import Item, Product, Buyer, Seed, Player
+from sqlalchemy import select, update, func
 
 
 
@@ -35,3 +36,14 @@ def add_buyer(item_id, min, max):
         new_buys = Buyer(item_id=item_id, min_price=min, max_price=max)
         session.add(new_buys)
         session.commit()
+
+async def restore_all_energy_cycle(sleep_time):
+    while True:
+        await asyncio.sleep(sleep_time)
+        try:
+            with Session() as session:
+                session.execute(update(Player).where(Player.energy < Player.max_energy).values(energy=func.least(Player.energy + 5, Player.max_energy)))
+                session.commit()
+                logging.info('Энергия всех юзнеров восстановлена!')
+        except Exception as eror:
+            logging.error(f'Ошибка при восстановлении энергии: {eror}')

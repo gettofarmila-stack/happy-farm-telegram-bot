@@ -20,7 +20,7 @@ def registation(name, username, user_id):
             return False
         else:
             new_user = User(name=name, username=username, user_id=user_id)
-            new_stats = Player(balance=100, level=1, exp=0)
+            new_stats = Player(balance=100, level=1, exp=0, max_energy=100, energy=100)
             new_user.stats = new_stats
             session.add(new_user)
             session.commit()
@@ -39,6 +39,7 @@ def get_profile(uid):
     Номер в базе: {user.id}
     Зарегистрирован: {user.register_at.strftime("%d.%m.%Y")}
     Баланс: {user.stats.balance}
+    Текущая энергия: {user.stats.energy}
     Уровень: {user.stats.level}
                 ''')
         else:
@@ -53,6 +54,7 @@ def lvl_up(uid):
             if exp >= lvl ** 2:
                 user.stats.exp -= lvl ** 2
                 user.stats.level += 1
+                user.stats.max_energy += 20
                 session.commit()
                 return(f'Уровень повышен! Текущий уровень: {user.stats.level}, очков опыта осталось: {user.stats.exp}')
             else:

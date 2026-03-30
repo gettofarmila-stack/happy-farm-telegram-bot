@@ -6,12 +6,6 @@ from database.models import User, Garden, Seed, InventoryItem
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-def add_seed(seed, result, grow):
-    with Session() as session:
-        seed = Seed(seed_item_id=seed, result_item_id=result, grow_time=grow)
-        session.add(seed)
-        session.commit()
-
 def check_my_garden(uid):
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item)).where(User.user_id == str(uid))).scalar_one_or_none()
@@ -40,7 +34,9 @@ def collect_garden(uid):
         anything_collected = False
         now = datetime.now()
         plots_to_remove = []
-
+        if user.stats.energy < 5: # 5 это я по 5 энергии отнимаю за каждое такое действие
+            return('У тебя недостаточно энергии!')
+        user.stats.energy -= 5
         for plot in user.garden:
             finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time)
             
@@ -70,7 +66,7 @@ def new_garden(uid, seed_id):
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
         user_inventory = [item.item_id for item in user.inventory]
-        if user:
+        if user.stats.energy > 1: # 1 энергию отнимаю за посадку растения
             seed = session.execute(select(Seed).where(Seed.seed_item_id == seed_id)).scalar_one_or_none()
             if seed and seed.seed_item_id in user_inventory:
                 garden = Garden(owner_id=str(uid), seed_id=seed.id)
@@ -80,14 +76,16 @@ def new_garden(uid, seed_id):
                     if exisiting_item.count > 1:
                         exisiting_item.count -= 1
                     else:
-                        session.delete(exisiting_item)             
+                        session.delete(exisiting_item) 
+                user.stats.energy -= 1            
                 session.commit()
                 logging.info('Игрок посадил растение')
                 return(f'Вы успешно посадили растение! Все ваши растения можно смотреть в /check')
             else:
                 logging.info('Не удалось посадить растение')
                 return(f'У вас нет семян! Купить их можно в /seed_shop')
-
+        else:
+            return('Недостаточно энергии!')
 def garden(uid):
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()

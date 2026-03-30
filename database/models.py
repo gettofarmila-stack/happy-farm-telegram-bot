@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, CheckConstraint
 from sqlalchemy.orm import DeclarativeBase, relationship
 from datetime import datetime
 from database.engine import engine
@@ -40,6 +40,8 @@ class Player(Base):
     balance = Column(Integer, default=100)
     level = Column(Integer, default=1)
     exp = Column(Integer, default=0)
+    max_energy = Column(Integer, default=100)
+    energy = Column(Integer, default=100)
     user = relationship('User', back_populates='stats')
 
 class Seed(Base):
