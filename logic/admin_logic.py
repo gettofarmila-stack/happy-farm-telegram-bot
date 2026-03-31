@@ -18,12 +18,18 @@ def create_item(name_item, description):
 
 def add_seed(seed, result, grow):
     with Session() as session:
-        seed = Seed(seed_item_id=seed, result_item_id=result, grow_time=grow)
-        session.add(seed)
+        find_seed = session.execute(select(Seed).where(Seed.seed_item_id == int(seed))).scalar_one_or_none()
+        if find_seed:
+            return('Такое семя уже существует! Функция add_seed')
+        n_seed = Seed(seed_item_id=seed, result_item_id=result, grow_time=grow)
+        session.add(n_seed)
         session.commit()
 
 def add_product(new_id, new_price, new_cat):
     with Session() as session:
+        find_product = session.execute(select(Product).where(Product.item_id == int(new_id))).scalar_one_or_none()
+        if find_product:
+            return('Такой продукт уже существует! Функция add_product')
         new_product = Product(item_id=new_id, price=new_price, category=new_cat)
         session.add(new_product)
         session.commit()
@@ -31,6 +37,9 @@ def add_product(new_id, new_price, new_cat):
 
 def add_buyer(item_id, min, max):
     with Session() as session:
+        find_buy = session.execute(select(Buyer).where(Buyer.item_id == int(item_id))).scalar_one_or_none()
+        if find_buy:
+            return('Этот товар уже скупается! Ошибка add_buyer функция')
         new_buys = Buyer(item_id=item_id, min_price=min, max_price=max)
         session.add(new_buys)
         session.commit()

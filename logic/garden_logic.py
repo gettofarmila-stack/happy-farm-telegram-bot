@@ -102,6 +102,8 @@ def garden(uid):
             if seed.seed_item_id in user_inventory:
                 res += f'{counter}. {seed.item.name_key}, чтобы посадить: /plant_{seed.item.id}\n'
                 counter += 1
+        if counter == 1:
+            return('Тебе нечего садить! Купить семена можно в /seed_shop')
         return(res)
     
 def watering(uid):
