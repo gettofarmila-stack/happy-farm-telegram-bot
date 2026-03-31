@@ -4,10 +4,15 @@ from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
 from logic.shop_logic import seed_shop, buy, sell_all, buyer, store
+from keyboards.shop_menu import shop_menu_kb
 router = Router()
 
+@router.message(F.text == 'Магазины')
+async def kb_shops(message: types.Message):
+    await message.answer('Выберите магазин', reply_markup=shop_menu_kb())
 
 @router.message(Command('seed_shop'))
+@router.message(F.text == 'Магазин Семян')
 async def cmd_seed_shop(message: types.Message):
     shop = await asyncio.to_thread(seed_shop)
     await message.answer(shop)
@@ -24,11 +29,13 @@ async def cmd_sell_all(message: types.Message):
     await message.answer(sell)
 
 @router.message(Command('buyer'))
+@router.message(F.text == 'Скупщик')
 async def cmd_buyer(message: types.Message):
     buys = await asyncio.to_thread(buyer)
     await message.answer(buys)
 
 @router.message(Command('shop'))
+@router.message(F.text == 'Магазин бустов')
 async def cmd_shop(message: types.Message):
     shop = await asyncio.to_thread(store)
     await message.answer(shop)

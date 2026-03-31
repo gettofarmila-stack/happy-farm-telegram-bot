@@ -4,20 +4,27 @@ from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
 from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering
+from keyboards.garden_menu import garden_menu_kb
 router = Router()
 
+@router.message(F.text == 'Огород')
+async def kd_garden(message: types.Message):
+    await message.answer('Выберите действие', reply_markup=garden_menu_kb())
 
 @router.message(Command('check'))
+@router.message(F.text == 'Проверка')
 async def cmd_check_garden(message: types.Message):
     checked = await asyncio.to_thread(check_my_garden, message.from_user.id)
     await message.answer(checked)
 
 @router.message(Command('collect'))
+@router.message(F.text == 'Сбор')
 async def cmd_collect(message: types.Message):
     collected = await asyncio.to_thread(collect_garden, message.from_user.id)
     await message.answer(collected)
 
 @router.message(Command('garden'))
+@router.message(F.text == 'Посадка')
 async def cmd_garden(message: types.Message):
     my_garden = await asyncio.to_thread(garden, message.from_user.id)
     await message.answer(my_garden)
@@ -29,6 +36,7 @@ async def cmd_buy(message: types.Message, command: CommandObject):
     await message.answer(planter)
     
 @router.message(Command('water'))
+@router.message(F.text == 'Полив')
 async def cmd_water(message: types.Message):
     water = await asyncio.to_thread(watering, message.from_user.id)
     await message.answer(water)

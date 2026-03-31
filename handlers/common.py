@@ -1,38 +1,46 @@
 import asyncio
-from aiogram import types, Router
+import logging
+from aiogram import types, Router, F
 from aiogram.filters.command import Command
 from logic.user_logic import registation, get_profile, lvl_up, inventory_check, bal_top, lvl_top
 from logic.weather_logic import weather_manager
+from keyboards.main_menu import main_menu_kb, profile_menu_kb
 router = Router()
 
 @router.message(Command('start'))
+@router.message(F.text == 'Главное меню')
 async def cmd_start(message: types.Message):
-    is_new = await asyncio.to_thread(registation, name=message.from_user.first_name,
-                username=message.from_user.username, 
-                user_id=message.from_user.id
-    )
+    is_new = await asyncio.to_thread(registation, name=message.from_user.first_name, username=message.from_user.username, user_id=message.from_user.id)
     if is_new:
-        await message.answer('Вы успешно зарегестрировались!')
+        logging.info('Новый пользователь!')
     else:
-        await message.answer('Вы уже зарегестрированы')
+        logging.info('Не удалось зарегать юзера, он уже зареган')
+    await message.answer('Добро пожаловать на веселую ферму!\nВыбери раздел:', reply_markup=main_menu_kb())
 
+@router.message(F.text == 'Профиль')
+async def kb_profile(message: types.Message):
+    await message.answer('Выбери, что хочешь посмотреть?', reply_markup=profile_menu_kb())
 
 @router.message(Command('profile'))
+@router.message(F.text == 'Статистика')
 async def cmd_profile(message: types.Message):
     prof = await asyncio.to_thread(get_profile, uid=message.from_user.id)
     await message.answer(prof)
 
 @router.message(Command('lvl_up'))
+@router.message(F.text == 'Повысить уровень')
 async def cmd_lvlup(message: types.Message):
     lvl = await asyncio.to_thread(lvl_up, message.from_user.id)
     await message.answer(lvl)
 
 @router.message(Command('inventory'))
+@router.message(F.text == 'Инвентарь')
 async def cmd_inv(message: types.Message):
     inventory = await asyncio.to_thread(inventory_check, message.from_user.id)
     await message.answer(inventory)
 
 @router.message(Command('weather'))
+@router.message(F.text == 'Погода')
 async def cmd_weather(message: types.Message):
     await message.answer(f'Текущая погода: {weather_manager.current.name}\n - множитель огорода x{weather_manager.current.grow_multiplier}\n - бонус к восстановлению энергии: {weather_manager.current.energy_bonus}')
 

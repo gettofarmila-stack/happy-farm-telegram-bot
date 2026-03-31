@@ -1,0 +1,17 @@
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram import types
+
+# тут все главные менюшки
+
+def main_menu_kb():
+    builder = ReplyKeyboardBuilder()
+    builder.row(types.KeyboardButton(text='Профиль'), types.KeyboardButton(text='Огород'))
+    builder.row(types.KeyboardButton(text='Магазины'), types.KeyboardButton(text='Погода'))
+    return builder.as_markup(resize_keyboard=True)
+
+def profile_menu_kb():
+    builder = ReplyKeyboardBuilder()
+    builder.row(types.KeyboardButton(text='Статистика'), types.KeyboardButton(text='Инвентарь'))
+    builder.row(types.KeyboardButton(text='Повысить уровень'))
+    builder.row(types.KeyboardButton(text='Главное меню'))
+    return builder.as_markup(resize_keyboard=True)
