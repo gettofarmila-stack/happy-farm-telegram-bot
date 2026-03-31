@@ -3,9 +3,7 @@ import asyncio
 from database.engine import Session
 from database.models import Item, Product, Buyer, Seed, Player
 from sqlalchemy import select, update, func
-
-
-
+from logic.weather_logic import get_random_weather, weather_manager
 
 def create_item(name_item, description):
     with Session() as session:
@@ -42,8 +40,18 @@ async def restore_all_energy_cycle(sleep_time):
         await asyncio.sleep(sleep_time)
         try:
             with Session() as session:
-                session.execute(update(Player).where(Player.energy < Player.max_energy).values(energy=func.least(Player.energy + 5, Player.max_energy)))
+                session.execute(update(Player).where(Player.energy < Player.max_energy).values(energy=func.least(Player.energy + 5 + weather_manager.current.energy_bonus, Player.max_energy)))
                 session.commit()
                 logging.info('Энергия всех юзнеров восстановлена!')
         except Exception as eror:
             logging.error(f'Ошибка при восстановлении энергии: {eror}')
+
+async def random_weather_choise(sleep_time):
+    while True:
+        await asyncio.sleep(sleep_time)
+        try:
+            n_weather = get_random_weather()
+            weather_manager.current = n_weather
+            logging.info(f'Установлена погода {n_weather.name}, множитель {n_weather.grow_multiplier}')
+        except Exception as error:
+            logging.error(f'Ошибка при смене погоды: {error}')

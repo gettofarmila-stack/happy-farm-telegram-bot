@@ -4,7 +4,7 @@ import time
 from aiogram import Bot, Dispatcher
 from handlers import common, garden, shops, admin
 from config import my_token
-from logic.admin_logic import restore_all_energy_cycle
+from logic.admin_logic import restore_all_energy_cycle, random_weather_choise
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
@@ -20,10 +20,9 @@ async def main():
         admin.router
     )
 
-    await dp.start_polling(bot)
-
     asyncio.create_task(restore_all_energy_cycle(300)) # каждые 300 секунд будет обновление энергии
-    
+    asyncio.create_task(random_weather_choise(1200))
+
     logging.info('Бот и фоновые задачи запущены')
     await dp.start_polling(bot)
 

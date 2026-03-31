@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from database.models import User, Garden, Seed, InventoryItem
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from logic.weather_logic import weather_manager
 
 def check_my_garden(uid):
     with Session() as session:
@@ -12,7 +13,7 @@ def check_my_garden(uid):
         if user and user.garden:
             res = '🌱 Твои грядки:\n'
             for plot in user.garden:
-                finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time)
+                finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
                 now = datetime.now()
                 remaining_time = (finish_time - now).total_seconds()
                 if remaining_time <= 0:
@@ -38,7 +39,7 @@ def collect_garden(uid):
             return('У тебя недостаточно энергии!')
         user.stats.energy -= 5
         for plot in user.garden:
-            finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time)
+            finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
             
             if now >= finish_time:
                 target_item_id = plot.current_seed.result_item_id
