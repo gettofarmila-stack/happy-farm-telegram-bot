@@ -1,7 +1,7 @@
 import logging
 import asyncio
 from database.engine import Session
-from database.models import Item, Product, Buyer, Seed, Player
+from database.models import Item, Product, Buyer, Seed, Player, Garden
 from sqlalchemy import select, update, func
 from logic.weather_logic import get_random_weather, weather_manager
 
@@ -45,6 +45,17 @@ async def restore_all_energy_cycle(sleep_time):
                 logging.info('Энергия всех юзнеров восстановлена!')
         except Exception as eror:
             logging.error(f'Ошибка при восстановлении энергии: {eror}')
+
+async def hydration_min(sleep_time):
+    while True:
+        await asyncio.sleep(sleep_time)
+        try:
+            with Session() as session:
+                session.execute(update(Garden).values(hydration = func.greatest(func.least(Garden.hydration + weather_manager.current.hydration_boost, 1.0), 0.0)))
+                session.commit()
+                logging.info(f'Влажность всех огородов упала на {weather_manager.current.hydration_boost}!')
+        except Exception as error:
+            logging.error(f'Не удалось уменьшить влажность: {error}')
 
 async def random_weather_choise(sleep_time):
     while True:

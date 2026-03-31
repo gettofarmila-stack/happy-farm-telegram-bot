@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden
+from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering
 router = Router()
 
 
@@ -27,3 +27,8 @@ async def cmd_buy(message: types.Message, command: CommandObject):
     item_id = message.text.split('_')[1]
     planter = await asyncio.to_thread(new_garden, message.from_user.id, item_id)
     await message.answer(planter)
+    
+@router.message(Command('water'))
+async def cmd_water(message: types.Message):
+    water = await asyncio.to_thread(watering, message.from_user.id)
+    await message.answer(water)

@@ -3,7 +3,7 @@ import time
 from database.engine import Session
 from datetime import datetime, timedelta
 from database.models import User, Garden, Seed, InventoryItem
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from sqlalchemy.orm import selectinload
 from logic.weather_logic import weather_manager
 
@@ -19,7 +19,7 @@ def check_my_garden(uid):
                 if remaining_time <= 0:
                     res += f'- {plot.current_seed.item.name_key}: ✅ МОЖНО СОБИРАТЬ! /collect\n'
                 else:
-                    res += f"- {plot.current_seed.item.name_key}: ⏳ Будет готово через {int(remaining_time)} сек.\n"
+                    res += f"- {plot.current_seed.item.name_key}: ⏳ Будет готово через {int(remaining_time)} сек. текущая влажность {round(plot.hydration, 2)}\n"
             return res
         return 'У тебя пока пусто.'
 
@@ -39,6 +39,8 @@ def collect_garden(uid):
             return('У тебя недостаточно энергии!')
         user.stats.energy -= 5
         for plot in user.garden:
+            if plot.hydration == 0:
+                return('Полей свой огород!')
             finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
             
             if now >= finish_time:
@@ -101,3 +103,16 @@ def garden(uid):
                 res += f'{counter}. {seed.item.name_key}, чтобы посадить: /plant_{seed.item.id}\n'
                 counter += 1
         return(res)
+    
+def watering(uid):
+    try:
+        with Session() as session:
+            user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
+            if user.stats.energy < 10:
+                return('Недостаточно энергии!')
+            session.execute(update(Garden).where(Garden.owner_id == str(uid)).values(hydration = func.least(Garden.hydration + 0.25, 1.0)))
+            session.commit()
+            return(f'Вы успешно полили ваш огород! Влажность увеличена на 0.25')
+    except Exception as error:
+        logging.info(f'{uid} не смог полить огород! {error}')
+        return('Не удалось полить огород! Проверьте, возможно вам не нужно его поливать!')

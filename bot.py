@@ -4,7 +4,7 @@ import time
 from aiogram import Bot, Dispatcher
 from handlers import common, garden, shops, admin
 from config import my_token
-from logic.admin_logic import restore_all_energy_cycle, random_weather_choise
+from logic.admin_logic import restore_all_energy_cycle, random_weather_choise, hydration_min
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') 
 
@@ -21,7 +21,8 @@ async def main():
     )
 
     asyncio.create_task(restore_all_energy_cycle(300)) # каждые 300 секунд будет обновление энергии
-    asyncio.create_task(random_weather_choise(1200))
+    asyncio.create_task(random_weather_choise(3600)) #смена погоды каждый час
+    asyncio.create_task(hydration_min(900)) # каждые 15 минут понижение/повышение влажности почвы в зависимости от погодных условий
 
     logging.info('Бот и фоновые задачи запущены')
     await dp.start_polling(bot)
