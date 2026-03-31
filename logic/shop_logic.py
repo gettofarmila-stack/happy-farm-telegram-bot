@@ -14,7 +14,7 @@ def buy(uid, product_id):
         user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
         product = session.execute(select(Product).options(selectinload(Product.item)).where(Product.id == product_id)).scalar_one_or_none()
         if product:
-            if user.stats.balance > product.price:
+            if user.stats.balance >= product.price:
                 add_item_to_user_obj(user, product.item_id, amount=1)
                 user.stats.balance -= product.price
                 session.commit()
