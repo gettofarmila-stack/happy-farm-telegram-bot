@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.shop_logic import seed_shop, buy, sell_all, buyer
+from logic.shop_logic import seed_shop, buy, sell_all, buyer, store
 router = Router()
 
 
@@ -27,3 +27,8 @@ async def cmd_sell_all(message: types.Message):
 async def cmd_buyer(message: types.Message):
     buys = await asyncio.to_thread(buyer)
     await message.answer(buys)
+
+@router.message(Command('shop'))
+async def cmd_shop(message: types.Message):
+    shop = await asyncio.to_thread(store)
+    await message.answer(shop)

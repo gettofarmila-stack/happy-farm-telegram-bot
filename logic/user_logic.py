@@ -1,7 +1,7 @@
 import logging
 from database.engine import Session
 from database.models import User, Player, InventoryItem
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 
 
@@ -105,3 +105,22 @@ def inventory_check(uid):
                 counter += 1
             return res
         
+def bal_top():
+    with Session() as session:
+        players = session.execute(select(Player).options(selectinload(Player.user)).order_by(desc(Player.balance)).limit(10)).scalars().all()
+        res = 'Топ 10 по балансу:\n'
+        count = 0
+        for p in players:
+            count += 1
+            res += f'{count}. {p.user.name}: {p.balance}$\n'
+        return(res)
+    
+def lvl_top():
+    with Session() as session:
+        player = session.execute(select(Player).options(selectinload(Player.user)).order_by(desc(Player.level)).limit(10)).scalars().all()
+        res = 'Топ 10 по уровню:\n'
+        counter = 0
+        for p in player:
+            counter += 1
+            res += f'{counter}. {p.user.name}: {p.level}lvl\n'
+        return(res)

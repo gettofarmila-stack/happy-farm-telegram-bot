@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import types, Router
 from aiogram.filters.command import Command
-from logic.user_logic import registation, get_profile, lvl_up, inventory_check
+from logic.user_logic import registation, get_profile, lvl_up, inventory_check, bal_top, lvl_top
 from logic.weather_logic import weather_manager
 router = Router()
 
@@ -35,6 +35,16 @@ async def cmd_inv(message: types.Message):
 @router.message(Command('weather'))
 async def cmd_weather(message: types.Message):
     await message.answer(f'Текущая погода: {weather_manager.current.name}\n - множитель огорода x{weather_manager.current.grow_multiplier}\n - бонус к восстановлению энергии: {weather_manager.current.energy_bonus}')
+
+@router.message(Command('baltop'))
+async def cmd_baltop(message: types.Message):
+    top = await asyncio.to_thread(bal_top)
+    await message.answer(top)
+
+@router.message(Command('lvltop'))
+async def cmd_lvltop(message: types.Message):
+    top = await asyncio.to_thread(lvl_top)
+    await message.answer(top)
 
 @router.message(Command('help'))
 async def cmd_help(message: types.Message):

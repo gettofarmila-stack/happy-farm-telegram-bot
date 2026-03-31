@@ -98,3 +98,13 @@ def buyer():
             counter += 1
         res += f'До смены цен осталось {round((900 - (time.time() - start_time)) / 60)} минут\nЧтобы продать всё, введите /sell_all'
         return res
+
+def store():
+    with Session() as session:
+        products = session.execute(select(Product).options(selectinload(Product.item)).where(Product.category == 'bonus')).scalars().all()
+        res = 'Добро пожаловать в магазин удобрений, и полезных вещей.\nВ наличии:\n'
+        count = 0
+        for product in products:
+            count += 1
+            res += f'{count}. {product.item.name_key}, {product.item.description} - {product.price}'
+        return(res)
