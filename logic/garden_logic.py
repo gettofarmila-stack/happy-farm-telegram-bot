@@ -69,6 +69,8 @@ def new_garden(uid, seed_id):
         user_inventory = [item.item_id for item in user.inventory]
         if user.stats.energy > 1: # 1 энергию отнимаю за посадку растения
             seed = session.execute(select(Seed).where(Seed.seed_item_id == seed_id)).scalar_one_or_none()
+            if len(user.garden) >= user.stats.level * 3:
+                return(f'У тебя слишком большой огород! Ты не можешь создавать больше {user.stats.level * 3} грядок.')
             if seed and seed.seed_item_id in user_inventory:
                 garden = Garden(owner_id=str(uid), seed_id=seed.id)
                 session.add(garden)

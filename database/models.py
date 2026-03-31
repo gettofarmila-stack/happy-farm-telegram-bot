@@ -59,9 +59,8 @@ class Garden(Base):
     id = Column(Integer, primary_key=True)
     owner_id = Column(String, ForeignKey('users.user_id'))
     seed_id = Column(Integer, ForeignKey('seeds.id'))
-    
+    hydration = Column(Float, default=1.0)
     start_time = Column(DateTime, default=datetime.now)
-    boost = Column(Float, default=1.0)
     
     owner = relationship('User', back_populates='garden')
     current_seed = relationship('Seed', back_populates='garden_slots')
