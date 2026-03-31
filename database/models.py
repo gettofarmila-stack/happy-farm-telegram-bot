@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, CheckConstraint
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Float
 from sqlalchemy.orm import DeclarativeBase, relationship
 from datetime import datetime
 from database.engine import engine
@@ -54,7 +54,6 @@ class Seed(Base):
     garden_slots = relationship('Garden', back_populates='current_seed')
     item = relationship('Item', foreign_keys=[seed_item_id])
 
-
 class Garden(Base):
     __tablename__ = 'gardens'
     id = Column(Integer, primary_key=True)
@@ -62,6 +61,7 @@ class Garden(Base):
     seed_id = Column(Integer, ForeignKey('seeds.id'))
     
     start_time = Column(DateTime, default=datetime.now)
+    boost = Column(Float, default=1.0)
     
     owner = relationship('User', back_populates='garden')
     current_seed = relationship('Seed', back_populates='garden_slots')
