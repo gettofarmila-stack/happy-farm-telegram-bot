@@ -13,6 +13,7 @@ class User(Base):
     username = Column(String)
     user_id = Column(String, unique=True, nullable=False)
     register_at = Column(DateTime, default=datetime.now)
+    referer_id = Column(String)
 
     stats = relationship('Player', back_populates='user', uselist=False)
     inventory = relationship('InventoryItem', back_populates='owner')

@@ -20,11 +20,12 @@ def buy(uid, product_id):
                 add_item_to_user_obj(user, product.item_id, amount=1)
                 user.stats.balance -= product.price
                 session.commit()
-                return(f'Успешная покупка {product.item.name_key}, текущий баланс {user.stats.balance}')
+                return(f'✅ *Покупка!* {product.item.name_key}\n💰 Баланс: *{user.stats.balance}$*')
             else:
-                return(f'Недостаточно средств, вам не хватает {product.price - user.stats.balance}')
+                deficit = product.price - user.stats.balance
+                return(f'❌ *Недостаточно денег!* Не хватает: *{deficit}$*')
         else:
-            return('Такого продукта не существует!')
+            return('❌ *Продукт не найден!*')
         
 def seed_shop():
     builder = InlineKeyboardBuilder()
@@ -53,13 +54,16 @@ def sell_item(uid, item_id):
         update_buyer_price()
         product = session.execute(select(Buyer).options(selectinload(Buyer.item)).where(Buyer.item_id == int(item_id))).scalar_one_or_none()
         if not inv_item:
-            return 'У тебя в инвентаре этого нет!'
-        res = f'Успешно продано на сумму {product.now_price * inv_item.count}\n'
-        user.stats.balance += (product.now_price * inv_item.count)
-        user.stats.exp += (product.now_price * inv_item.count) * 0.1
+            return '❌ *Нет такого предмета* в инвентаре!'
+        total_price = product.now_price * inv_item.count
+        exp_gain = (product.now_price * inv_item.count) * 0.1
+        res = f'✅ *Продано!* {inv_item.item.name_key}\n'
+        res += f'💰 Получено: *{total_price}$*\n'
+        user.stats.balance += total_price
+        user.stats.exp += exp_gain
         session.delete(inv_item)
         session.commit()
-        res += f'Текущий баланс: {user.stats.balance}, опыта добавлено {(product.now_price * inv_item.count) * 0.1}'
+        res += f'💾 Баланс: *{user.stats.balance}$*\n⭐ Опыт: +*{exp_gain:.1f}*'
         return(res)
 
 
@@ -76,9 +80,9 @@ def buyer():
 def store():
     with Session() as session:
         products = session.execute(select(Product).options(selectinload(Product.item)).where(Product.category == 'bonus')).scalars().all()
-        res = 'Добро пожаловать в магазин удобрений, и полезных вещей.\nВ наличии:\n'
+        res = '🥝 *МАГАЗИН БУСТОВ* 🦕\n\n'
         count = 0
         for product in products:
             count += 1
-            res += f'{count}. {product.item.name_key}, {product.item.description} - {product.price}'
+            res += f'{count}. *{product.item.name_key}*\n   📝 {product.item.description}\n   💰 Цена: *{product.price}$*\n\n'
         return(res)

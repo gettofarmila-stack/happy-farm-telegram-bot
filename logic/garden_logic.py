@@ -30,18 +30,18 @@ def collect_garden(uid):
         user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed),selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
 
         if not user or not user.garden:
-            return 'У тебя пока пусто на грядках!'
+            return '🌱 Грядок нет, погоди момент!'
 
-        res = '🚜 Отчет по сбору:\n'
+        res = '🚜 *ОТЧЕТ ПО СБОРУ УРОЖАЯ:*\n\n'
         anything_collected = False
         now = datetime.now()
         plots_to_remove = []
-        if user.stats.energy < 5: # 5 это я по 5 энергии отнимаю за каждое такое действие
-            return('У тебя недостаточно энергии!')
+        if user.stats.energy < 5:
+            return('⚡ *Недостаточно энергии! Нужно: 5*')
         user.stats.energy -= 5
         for plot in user.garden:
             if plot.hydration == 0:
-                return('Полей свой огород!')
+                return('💧 *Полей свой огород! Влажность 0!*')
             finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
             
             if now >= finish_time:
@@ -55,7 +55,7 @@ def collect_garden(uid):
                     user.inventory.append(new_inv_item)
                 
                 plots_to_remove.append(plot)
-                res += f"✅ {plot.current_seed.item.name_key} собран!\n"
+                res += f"✅ *{plot.current_seed.item.name_key}* собран!\n"
                 anything_collected = True
 
         if anything_collected:
@@ -63,17 +63,17 @@ def collect_garden(uid):
                 session.delete(p)
             session.commit()
             return res
-        return "Ничего еще не созрело!"
+        return "❌ *Ничего еще не созрело!*"
     
 def new_garden(uid, seed_id):
     seed_id = int(seed_id)
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
         user_inventory = [item.item_id for item in user.inventory]
-        if user.stats.energy > 1: # 1 энергию отнимаю за посадку растения
+        if user.stats.energy > 1:
             seed = session.execute(select(Seed).where(Seed.seed_item_id == seed_id)).scalar_one_or_none()
             if len(user.garden) >= user.stats.level * 3:
-                return(f'У тебя слишком большой огород! Ты не можешь создавать больше {user.stats.level * 3} грядок.')
+                return(f'❌ *Слишком большой огород!* Максимум грядок: *{user.stats.level * 3}*')
             if seed and seed.seed_item_id in user_inventory:
                 garden = Garden(owner_id=str(uid), seed_id=seed.id)
                 session.add(garden)
@@ -86,12 +86,12 @@ def new_garden(uid, seed_id):
                 user.stats.energy -= 1            
                 session.commit()
                 logging.info('Игрок посадил растение')
-                return(f'Вы успешно посадили растение! Все ваши растения можно смотреть в /check')
+                return(f'🌱 *Успешно посажено!* Проверить статус: /check')
             else:
                 logging.info('Не удалось посадить растение')
-                return(f'У вас нет семян! Купить их можно в /seed_shop')
+                return(f'❌ *Нет семян!* Купить в /seed_shop')
         else:
-            return('Недостаточно энергии!')
+            return('⚡ *Недостаточно энергии!*')
 def garden(uid):
     builder = InlineKeyboardBuilder()
     with Session() as session:
@@ -112,10 +112,11 @@ def watering(uid):
         with Session() as session:
             user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
             if user.stats.energy < 10:
-                return('Недостаточно энергии!')
+                return('⚡ *Недостаточно энергии! Нужно: 10*')
             session.execute(update(Garden).where(Garden.owner_id == str(uid)).values(hydration = func.least(Garden.hydration + 0.25, 1.0)))
+            user.stats.energy -= 10
             session.commit()
-            return(f'Вы успешно полили ваш огород! Влажность увеличена на 0.25')
+            return(f'💧 *Полили огород!* Влажность +0.25 (⚡-10)')
     except Exception as error:
         logging.info(f'{uid} не смог полить огород! {error}')
-        return('Не удалось полить огород! Проверьте, возможно вам не нужно его поливать!')
+        return('❌ *Ошибка!* Проверьте огород')

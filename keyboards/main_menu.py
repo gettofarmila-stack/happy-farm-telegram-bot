@@ -19,6 +19,6 @@ def menu_top_kb():
 def profile_menu_kb():
     builder = ReplyKeyboardBuilder()
     builder.row(types.KeyboardButton(text='Статистика'), types.KeyboardButton(text='Инвентарь'))
-    builder.row(types.KeyboardButton(text='Повысить уровень'))
+    builder.row(types.KeyboardButton(text='Повысить уровень'), types.KeyboardButton(text='Реферальная система'))
     builder.row(types.KeyboardButton(text='Главное меню'))
     return builder.as_markup(resize_keyboard=True)

@@ -9,42 +9,42 @@ router = Router()
 
 @router.message(F.text == 'Огород')
 async def kd_garden(message: types.Message):
-    await message.answer('Выберите действие', reply_markup=garden_menu_kb())
+    await message.answer('🌱 Выберите действие', reply_markup=garden_menu_kb())
 
 @router.message(Command('check'))
 @router.message(F.text == 'Проверка')
 async def cmd_check_garden(message: types.Message):
     checked = await asyncio.to_thread(check_my_garden, message.from_user.id)
     if checked:
-        await message.answer('Ваш огород, чтобы собрать, нажмите на готовый посев', reply_markup=checked)
+        await message.answer('🌿 Ваш огород, чтобы собрать, нажмите на готовый посев', reply_markup=checked)
     else:
-        await message.answer('У тебя пусто!')
+        await message.answer('🌻 Огород партте!')
 
 @router.callback_query(F.data == "inline_collect")
 async def process_collecting(callback: types.CallbackQuery):
     collected = await asyncio.to_thread(collect_garden, callback.from_user.id)
-    await callback.answer('Успешно')
-    await callback.message.edit_text(f"Урожай собран! {collected}")
+    await callback.answer('✅ Урожай собран!')
+    await callback.message.edit_text(f"🤏 Отчет по сбору:\n{collected}", parse_mode='Markdown')
 
 @router.message(Command('garden'))
 @router.message(F.text == 'Посадка')
 async def cmd_garden(message: types.Message):
     my_garden = await asyncio.to_thread(garden, message.from_user.id)
     if my_garden:
-        await message.answer('В вашем кармане оказались:', reply_markup=my_garden)
+        await message.answer('🌾 В вашем кармане эти семена:', reply_markup=my_garden)
     else:
-        await message.answer('Вам нечего сажать! Купите семена в магазине')
+        await message.answer('🌚 Нечего сажать! Купи семена в магазине 🌵')
 
 @router.callback_query(F.data == 'not_ready_seed')
 async def inline_notready(callback: types.CallbackQuery):
-    await callback.answer('Посев ещё не готов!')
-    await callback.message.edit_text('Ещё не выросло!', reply_markup=check_my_garden)
+    await callback.answer('🌚 Не готово ещё!')
+    await callback.message.edit_text('🕒 Осталось ещё расти!', reply_markup=check_my_garden)
 
 @router.message(Command(re.compile(r'plant_(\d+)')))
 async def cmd_buy(message: types.Message, command: CommandObject):
     item_id = message.text.split('_')[1]
     planter = await asyncio.to_thread(new_garden, message.from_user.id, item_id)
-    await message.answer(planter)
+    await message.answer(planter, parse_mode='Markdown')
 
 @router.callback_query(F.data.startswith('plant_'))
 async def inline_plant(callback: types.CallbackQuery):
@@ -57,4 +57,4 @@ async def inline_plant(callback: types.CallbackQuery):
 @router.message(F.text == 'Полив')
 async def cmd_water(message: types.Message):
     water = await asyncio.to_thread(watering, message.from_user.id)
-    await message.answer(water)
+    await message.answer(water, parse_mode='Markdown')

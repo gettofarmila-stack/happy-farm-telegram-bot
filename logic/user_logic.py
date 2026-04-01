@@ -33,19 +33,20 @@ def get_profile(uid):
         user = session.execute(select(User).where(User.user_id == str(uid))).scalar_one_or_none()
         if user:
             return(f'''
-        👤 Профиль
-    Имя: {user.name}
-    Юзернейм: @{user.username}
-    Айди Телеграм: {user.user_id}
-    Номер в базе: {user.id}
-    Зарегистрирован: {user.register_at.strftime("%d.%m.%Y")}
-    Баланс: {user.stats.balance}
-    Текущая энергия: {user.stats.energy}
-    Уровень: {user.stats.level}
+        👤 ПРОФИЛЬ
+    👨 Имя: *{user.name}*
+    📝 Юзернейм: @{user.username}
+    🆔 Айди Телеграм: *{user.user_id}*
+    💾 Номер в базе: *{user.id}*
+    📅 Зарегистрирован: *{user.register_at.strftime("%d.%m.%Y")}*
+    
+    💰 Баланс: *{user.stats.balance}$*
+    ⚡ Текущая энергия: *{user.stats.energy}/{user.stats.max_energy}*
+    🏆 Уровень: *{user.stats.level}*
                 ''')
         else:
             logging.warning('ПОЛЬЗОВАТЕЛЬ НЕ ЗАРЕГЕСТРИРОВАН')
-            return('Ошибка, каким-то образом вы не зарегестрированы')
+            return('❌ Ошибка, каким-то образом вы не зарегестрированы')
 def lvl_up(uid):
     with Session() as session:
         user = session.execute(select(User).where(User.user_id == str(uid))).scalar_one_or_none()
@@ -57,14 +58,14 @@ def lvl_up(uid):
                 user.stats.level += 1
                 user.stats.max_energy += 20
                 session.commit()
-                return(f'Уровень повышен! Текущий уровень: {user.stats.level}, очков опыта осталось: {user.stats.exp}')
+                return(f'🎉 Уровень повышен! Текущий уровень: *{user.stats.level}*, опыта осталось: *{user.stats.exp}* \n⚡ Максимальная энергия +20!')
             else:
-                return(f'Недостаточно очков опыта, для повышения уровня вам необходимо {lvl ** 2} опыта')
+                return(f'❌ Недостаточно опыта! Нужно: *{lvl ** 2}*, у вас есть: *{exp}*')
             
 def add_to_inv(uid, item_id, amount=1):
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()  
-        if not user: return "Юзер не найден"
+        if not user: return "❌ Юзер не найден"
         existing_item = next((i for i in user.inventory if i.item_id == item_id), None)
         if existing_item:
             existing_item.count += amount
@@ -74,7 +75,7 @@ def add_to_inv(uid, item_id, amount=1):
             user.inventory.append(new_inv_entry)
             logging.info(f"Создали новую запись для предмета {item_id}")
         session.commit()
-        return f"Инвентарь обновлен! (+{amount})"
+        return f"✅ Инвентарь обновлен! (+*{amount}*)"
 
 def del_item_in_user_obj(session, user, item_id, amount=1):
     exisiting_item = next((i for i in user.inventory if i.item_id == item_id), None)
@@ -107,19 +108,21 @@ def inventory_check(uid):
 def bal_top():
     with Session() as session:
         players = session.execute(select(Player).options(selectinload(Player.user)).order_by(desc(Player.balance)).limit(10)).scalars().all()
-        res = 'Топ 10 по балансу:\n'
+        res = '💰 *ТОП 10 ПО БАЛАНСУ*\n\n'
         count = 0
         for p in players:
             count += 1
-            res += f'{count}. {p.user.name}: {p.balance}$\n'
+            medal = '🥇' if count == 1 else '🥈' if count == 2 else '🥉' if count == 3 else f'{count}️⃣'
+            res += f'{medal} *{p.user.name}*: {p.balance}$ \n'
         return(res)
     
 def lvl_top():
     with Session() as session:
         player = session.execute(select(Player).options(selectinload(Player.user)).order_by(desc(Player.level)).limit(10)).scalars().all()
-        res = 'Топ 10 по уровню:\n'
+        res = '🏆 *ТОП 10 ПО УРОВНЮ*\n\n'
         counter = 0
         for p in player:
             counter += 1
-            res += f'{counter}. {p.user.name}: {p.level}lvl\n'
+            medal = '🥇' if counter == 1 else '🥈' if counter == 2 else '🥉' if counter == 3 else f'{counter}️⃣'
+            res += f'{medal} *{p.user.name}*: {p.level}Lvl\n'
         return(res)
