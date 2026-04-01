@@ -35,6 +35,11 @@ async def cmd_garden(message: types.Message):
     else:
         await message.answer('Вам нечего сажать! Купите семена в магазине')
 
+@router.callback_query(F.data == 'not_ready_seed')
+async def inline_notready(callback: types.CallbackQuery):
+    await callback.answer('Посев ещё не готов!')
+    await callback.message.edit_text('Ещё не выросло!', reply_markup=check_my_garden)
+
 @router.message(Command(re.compile(r'plant_(\d+)')))
 async def cmd_buy(message: types.Message, command: CommandObject):
     item_id = message.text.split('_')[1]

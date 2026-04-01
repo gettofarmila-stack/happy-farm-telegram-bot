@@ -20,9 +20,9 @@ async def main():
         admin.router
     )
 
-    asyncio.create_task(restore_all_energy_cycle(300)) # каждые 300 секунд будет обновление энергии
+    asyncio.create_task(restore_all_energy_cycle(300)) # каждые 5 минут будет обновление энергии
     asyncio.create_task(random_weather_choise(bot, 1800)) #смена погоды каждый 30 мину 
-    asyncio.create_task(hydration_min(900)) # каждые 15 минут понижение/повышение влажности почвы в зависимости от погодных условий
+    asyncio.create_task(hydration_min(300)) # каждые 5 минут понижение/повышение влажности почвы в зависимости от погодных условий
 
     logging.info('Бот и фоновые задачи запущены')
     await dp.start_polling(bot)

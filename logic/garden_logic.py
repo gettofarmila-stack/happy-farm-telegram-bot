@@ -20,7 +20,7 @@ def check_my_garden(uid):
                 if remaining_time <= 0:
                     builder.row(types.InlineKeyboardButton(text=f'{plot.current_seed.item.name_key}: ✅ МОЖНО СОБИРАТЬ!', callback_data=f'inline_collect'))
                 else:
-                    builder.row(types.InlineKeyboardButton(text=f"{plot.current_seed.item.name_key}: ⏳ {int(remaining_time)} сек. 💧 {round(plot.hydration, 2)}", callback_data='none'))
+                    builder.row(types.InlineKeyboardButton(text=f"{plot.current_seed.item.name_key}: ⏳ {int(remaining_time)} сек. 💧 {round(plot.hydration, 2)}", callback_data='not_ready_seed'))
             return builder.as_markup()
         return None
 
