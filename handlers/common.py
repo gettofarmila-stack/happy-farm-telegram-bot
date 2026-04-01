@@ -4,7 +4,7 @@ from aiogram import types, Router, F
 from aiogram.filters.command import Command
 from logic.user_logic import registation, get_profile, lvl_up, inventory_check, bal_top, lvl_top
 from logic.weather_logic import weather_manager
-from keyboards.main_menu import main_menu_kb, profile_menu_kb
+from keyboards.main_menu import main_menu_kb, profile_menu_kb, menu_top_kb
 router = Router()
 
 @router.message(Command('start'))
@@ -37,19 +37,28 @@ async def cmd_lvlup(message: types.Message):
 @router.message(F.text == 'Инвентарь')
 async def cmd_inv(message: types.Message):
     inventory = await asyncio.to_thread(inventory_check, message.from_user.id)
-    await message.answer(inventory)
+    if inventory:
+        await message.answer("Твой инвентарь:", reply_markup=inventory)
+    else:
+        await message.answer("В инвентаре пока пусто... 🎒")
 
 @router.message(Command('weather'))
 @router.message(F.text == 'Погода')
 async def cmd_weather(message: types.Message):
     await message.answer(f'Текущая погода: {weather_manager.current.name}\n - множитель огорода x{weather_manager.current.grow_multiplier}\n - бонус к восстановлению энергии: {weather_manager.current.energy_bonus}')
 
+@router.message(F.text == 'Топ')
+async def kb_tops(message: types.Message):
+    await message.answer('Выберите топ', reply_markup=menu_top_kb())
+
 @router.message(Command('baltop'))
+@router.message(F.text == 'Топ по балансу')
 async def cmd_baltop(message: types.Message):
     top = await asyncio.to_thread(bal_top)
     await message.answer(top)
 
 @router.message(Command('lvltop'))
+@router.message(F.text == 'Топ по уровню')
 async def cmd_lvltop(message: types.Message):
     top = await asyncio.to_thread(lvl_top)
     await message.answer(top)

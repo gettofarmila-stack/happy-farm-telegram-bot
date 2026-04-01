@@ -8,6 +8,8 @@ from sqlalchemy.orm import selectinload
 from database.models import Product, User, Buyer
 from logic.user_logic import add_item_to_user_obj
 from bot import start_time
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import types
 
 def buy(uid, product_id):
     with Session() as session:
@@ -25,14 +27,12 @@ def buy(uid, product_id):
             return('Такого продукта не существует!')
         
 def seed_shop():
+    builder = InlineKeyboardBuilder()
     with Session() as session:
         products = session.execute(select(Product).options(selectinload(Product.item)))._raw_row_iterator()
-        res = 'Сейчас в наличии:\n'
-        counter = 1
         for product in products:
-            res += f'{counter}. {product.item.name_key}: {product.price}💰, для покупки {product.item.name_key}, введите /buy_{product.id}\n'
-            counter += 1
-        return(res)
+            builder.row(types.InlineKeyboardButton(text=f'{product.item.name_key}: {product.price}💰', callback_data=f'buy_{product.id}'))
+        return builder.as_markup()
     
 def update_buyer_price():
     global start_time

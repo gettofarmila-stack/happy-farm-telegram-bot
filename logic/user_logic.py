@@ -3,7 +3,8 @@ from database.engine import Session
 from database.models import User, Player, InventoryItem
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
-
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import types
 
 def is_register(uid):
     with Session() as session:
@@ -93,17 +94,15 @@ def add_item_to_user_obj(user, item_id, amount=1):
         user.inventory.append(new_inv_entry)
 
 def inventory_check(uid):
+    builder = InlineKeyboardBuilder()
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory).selectinload(InventoryItem.item)).where(User.user_id == str(uid))).scalar_one_or_none()
-        res = 'Ваш инвентарь:\n'
-        counter = 1
         if not user.inventory:
-            return('Инвентарь пуст')
+            return None
         else:
             for itemone in user.inventory:
-                res += f'{counter}) {itemone.item.name_key} - {itemone.count}шт.\n'
-                counter += 1
-            return res
+                builder.row(types.InlineKeyboardButton(text=f'{itemone.item.name_key} - {itemone.count}шт.', callback_data=f'inv_item_{itemone.item.id}'))
+            return builder.as_markup()
         
 def bal_top():
     with Session() as session:

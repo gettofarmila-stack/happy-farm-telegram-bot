@@ -6,22 +6,24 @@ from database.models import User, Garden, Seed, InventoryItem
 from sqlalchemy import select, update, func
 from sqlalchemy.orm import selectinload
 from logic.weather_logic import weather_manager
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import types
 
 def check_my_garden(uid):
+    builder = InlineKeyboardBuilder()
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item)).where(User.user_id == str(uid))).scalar_one_or_none()
         if user and user.garden:
-            res = '🌱 Твои грядки:\n'
             for plot in user.garden:
                 finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
                 now = datetime.now()
                 remaining_time = (finish_time - now).total_seconds()
                 if remaining_time <= 0:
-                    res += f'- {plot.current_seed.item.name_key}: ✅ МОЖНО СОБИРАТЬ! /collect\n'
+                    builder.row(types.InlineKeyboardButton(text=f'{plot.current_seed.item.name_key}: ✅ МОЖНО СОБИРАТЬ!', callback_data=f'inline_collect'))
                 else:
-                    res += f"- {plot.current_seed.item.name_key}: ⏳ Будет готово через {int(remaining_time)} сек. текущая влажность {round(plot.hydration, 2)}\n"
-            return res
-        return 'У тебя пока пусто.'
+                    builder.row(types.InlineKeyboardButton(text=f"{plot.current_seed.item.name_key}: ⏳ {int(remaining_time)} сек. 💧 {round(plot.hydration, 2)}", callback_data='none'))
+            return builder.as_markup()
+        return None
 
 
 def collect_garden(uid):
@@ -92,19 +94,19 @@ def new_garden(uid, seed_id):
         else:
             return('Недостаточно энергии!')
 def garden(uid):
+    builder = InlineKeyboardBuilder()
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
         seed_list = session.execute(select(Seed).options(selectinload(Seed.item)))._raw_row_iterator()
         user_inventory = [item.item_id for item in user.inventory]
-        res = 'Вы можете вырастить:\n'
         counter = 1
         for seed in seed_list:
             if seed.seed_item_id in user_inventory:
-                res += f'{counter}. {seed.item.name_key}, чтобы посадить: /plant_{seed.item.id}\n'
+                builder.row(types.InlineKeyboardButton(text=f'{seed.item.name_key}', callback_data=f'plant_{seed.item.id}'))
                 counter += 1
         if counter == 1:
-            return('Тебе нечего садить! Купить семена можно в /seed_shop')
-        return(res)
+            return None
+        return builder.as_markup()
     
 def watering(uid):
     try:

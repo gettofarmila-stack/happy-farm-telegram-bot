@@ -15,25 +15,38 @@ async def kd_garden(message: types.Message):
 @router.message(F.text == 'Проверка')
 async def cmd_check_garden(message: types.Message):
     checked = await asyncio.to_thread(check_my_garden, message.from_user.id)
-    await message.answer(checked)
+    if checked:
+        await message.answer('Ваш огород, чтобы собрать, нажмите на готовый посев', reply_markup=checked)
+    else:
+        await message.answer('У тебя пусто!')
 
-@router.message(Command('collect'))
-@router.message(F.text == 'Сбор')
-async def cmd_collect(message: types.Message):
-    collected = await asyncio.to_thread(collect_garden, message.from_user.id)
-    await message.answer(collected)
+@router.callback_query(F.data == "inline_collect")
+async def process_collecting(callback: types.CallbackQuery):
+    collected = await asyncio.to_thread(collect_garden, callback.from_user.id)
+    await callback.answer('Успешно')
+    await callback.message.edit_text(f"Урожай собран! {collected}")
 
 @router.message(Command('garden'))
 @router.message(F.text == 'Посадка')
 async def cmd_garden(message: types.Message):
     my_garden = await asyncio.to_thread(garden, message.from_user.id)
-    await message.answer(my_garden)
+    if my_garden:
+        await message.answer('В вашем кармане оказались:', reply_markup=my_garden)
+    else:
+        await message.answer('Вам нечего сажать! Купите семена в магазине')
 
 @router.message(Command(re.compile(r'plant_(\d+)')))
 async def cmd_buy(message: types.Message, command: CommandObject):
     item_id = message.text.split('_')[1]
     planter = await asyncio.to_thread(new_garden, message.from_user.id, item_id)
     await message.answer(planter)
+
+@router.callback_query(F.data.startswith('plant_'))
+async def inline_plant(callback: types.CallbackQuery):
+    item_id = callback.data.split('_')[1]
+    planter = await asyncio.to_thread(new_garden,callback.from_user.id , item_id)
+    await callback.answer(f"Результат: {planter}")
+    await callback.message.edit_text(f"🌿 Действие выполнено: {planter}")
     
 @router.message(Command('water'))
 @router.message(F.text == 'Полив')
