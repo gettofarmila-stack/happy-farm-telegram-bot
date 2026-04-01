@@ -21,7 +21,7 @@ async def main():
     )
 
     asyncio.create_task(restore_all_energy_cycle(300)) # каждые 300 секунд будет обновление энергии
-    asyncio.create_task(random_weather_choise(3600)) #смена погоды каждый час
+    asyncio.create_task(random_weather_choise(bot, 1800)) #смена погоды каждый 30 мину 
     asyncio.create_task(hydration_min(900)) # каждые 15 минут понижение/повышение влажности почвы в зависимости от погодных условий
 
     logging.info('Бот и фоновые задачи запущены')

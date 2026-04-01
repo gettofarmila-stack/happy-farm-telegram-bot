@@ -1,9 +1,11 @@
 import logging
 import asyncio
+from bot import Bot
 from database.engine import Session
-from database.models import Item, Product, Buyer, Seed, Player, Garden
+from database.models import Item, Product, Buyer, Seed, Player, Garden, User
 from sqlalchemy import select, update, func
 from logic.weather_logic import get_random_weather, weather_manager
+from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 
 def create_item(name_item, description):
     with Session() as session:
@@ -66,12 +68,33 @@ async def hydration_min(sleep_time):
         except Exception as error:
             logging.error(f'Не удалось уменьшить влажность: {error}')
 
-async def random_weather_choise(sleep_time):
+async def broadcast(bot, message_text):
+    with Session() as session:
+        users = session.execute(select(User.user_id)).scalars().all()
+        counter = 0
+        for user_id in users:
+            try:
+                await bot.send_message(chat_id=user_id, text=message_text)
+                counter += 1
+                await asyncio.sleep(0.05)
+            except TelegramForbiddenError:
+                logging.warning(f'Пользователь {user_id} заблокировал бота!')
+            except TelegramRetryAfter as e:
+                await asyncio.sleep(e.retry_after)
+                await bot.send_message(user_id, message_text)
+            except Exception as e:
+                logging.warning(f'Ошибка при рассылке {user_id}: {e}')
+        return counter
+
+
+async def random_weather_choise(bot, sleep_time):
     while True:
         await asyncio.sleep(sleep_time)
         try:
             n_weather = get_random_weather()
             weather_manager.current = n_weather
+            await broadcast(bot=bot, message_text=f'[СМЕНА ПОГОДЫ]\nПогода сейчас: {n_weather.name}, бонусы можно узнать в главном меню.')          
             logging.info(f'Установлена погода {n_weather.name}, множитель {n_weather.grow_multiplier}')
         except Exception as error:
             logging.error(f'Ошибка при смене погоды: {error}')
+

@@ -1,5 +1,4 @@
 import logging
-import time
 from database.engine import Session
 from datetime import datetime, timedelta
 from database.models import User, Garden, Seed, InventoryItem
