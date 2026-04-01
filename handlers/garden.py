@@ -46,7 +46,7 @@ async def inline_plant(callback: types.CallbackQuery):
     item_id = callback.data.split('_')[1]
     planter = await asyncio.to_thread(new_garden,callback.from_user.id , item_id)
     await callback.answer(f"Результат: {planter}")
-    await callback.message.edit_text(f"🌿 Действие выполнено: {planter}")
+    await callback.message.edit_text(f"🌿 Действие выполнено: {planter}", reply_markup=garden)
     
 @router.message(Command('water'))
 @router.message(F.text == 'Полив')

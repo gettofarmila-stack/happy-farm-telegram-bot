@@ -5,7 +5,7 @@ from database.engine import Session
 from database.models import User
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from database.models import Product, User, Buyer
+from database.models import Product, User, Buyer, InventoryItem
 from logic.user_logic import add_item_to_user_obj
 from bot import start_time
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -46,58 +46,32 @@ def update_buyer_price():
                 i.now_price = random.randint(i.min_price, i.max_price)
             session.commit()
 
-def sell_all(uid):
+def sell_item(uid, item_id):
     with Session() as session:
-        user = session.execute(
-            select(User)
-            .options(selectinload(User.inventory), selectinload(User.stats))
-            .where(User.user_id == str(uid))
-        ).scalar_one_or_none()
-        
-        if not user or not user.inventory:
-            return "Твой инвентарь пуст, продавать нечего!"
-
+        user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
+        inv_item = session.execute(select(InventoryItem).options(selectinload(InventoryItem.item)).where(InventoryItem.owner_id == str(uid)).where(InventoryItem.item_id == item_id)).scalar_one_or_none() 
         update_buyer_price()
-        buys = session.execute(select(Buyer)).scalars().all()
-        buyer_prices = {b.item_id: b.now_price for b in buys}
+        product = session.execute(select(Buyer).options(selectinload(Buyer.item)).where(Buyer.item_id == int(item_id))).scalar_one_or_none()
+        if not inv_item:
+            return 'У тебя в инвентаре этого нет!'
+        res = f'Успешно продано на сумму {product.now_price * inv_item.count}\n'
+        user.stats.balance += (product.now_price * inv_item.count)
+        user.stats.exp += (product.now_price * inv_item.count) * 0.1
+        session.delete(inv_item)
+        session.commit()
+        res += f'Текущий баланс: {user.stats.balance}, опыта добавлено {(product.now_price * inv_item.count) * 0.1}'
+        return(res)
 
-        total_profit = 0
-        items_sold_count = 0
-        items_to_remove = []
-        for inv_item in user.inventory:
-            if inv_item.item_id in buyer_prices:
-                price_per_one = buyer_prices[inv_item.item_id]
-                profit = price_per_one * inv_item.count
-                
-                total_profit += profit
-                items_sold_count += inv_item.count
-                
-                items_to_remove.append(inv_item)
-
-        if total_profit > 0:
-            for item in items_to_remove:
-                session.delete(item)
-            
-            user.stats.balance += total_profit
-            user.stats.exp += (total_profit * 0.001)
-            session.commit()
-            logging.info(f'Юзер {uid} продал все ресурсы ({items_sold_count} шт.) и заработал {total_profit} монет! Опыта начислено {total_profit * 0.001}')
-            return f"💰 Ты продал все ресурсы ({items_sold_count} шт.) и заработал {total_profit} монет! Опыта начислено {total_profit * 0.001}"
-        
-        return "У тебя нет ресурсов, которые сейчас принимает скупщик."
 
 def buyer():
+    builder = InlineKeyboardBuilder()
     update_buyer_price()
     global start_time
     with Session() as session:
         buyer_list = session.execute(select(Buyer).options(selectinload(Buyer.item))).scalars().all()
-        res = f'Цены у скупщика меняются каждые 15 минут\nСейчас цены:\n'
-        counter = 1
         for i in buyer_list:
-            res += f'{counter}. {i.item.name_key}, Цена: {i.now_price}💰\n'
-            counter += 1
-        res += f'До смены цен осталось {round((900 - (time.time() - start_time)) / 60)} минут\nЧтобы продать всё, введите /sell_all'
-        return res
+            builder.row(types.InlineKeyboardButton(text=f'{i.item.name_key}, Цена: {i.now_price}💰\n', callback_data=f'sell_{i.item_id}'))
+        return builder.as_markup()
 
 def store():
     with Session() as session:

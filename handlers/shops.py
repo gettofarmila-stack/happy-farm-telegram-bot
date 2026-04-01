@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.shop_logic import seed_shop, buy, sell_all, buyer, store
+from logic.shop_logic import seed_shop, buy, sell_item, buyer, store
 from keyboards.shop_menu import shop_menu_kb
 router = Router()
 
@@ -31,16 +31,19 @@ async def inline_buy(callback: types.CallbackQuery):
     await callback.answer(buye)
     await callback.message.edit_text(buye, reply_markup=shop)
 
-@router.message(Command('sell_all'))
-async def cmd_sell_all(message: types.Message):
-    sell = await asyncio.to_thread(sell_all, message.from_user.id)
-    await message.answer(sell)
+@router.callback_query(F.data.startswith('sell_'))
+async def inline_buy(callback: types.CallbackQuery):
+    item_id = callback.data.split('_')[1]
+    sell = await asyncio.to_thread(sell_item, callback.from_user.id, item_id)
+    buye = await asyncio.to_thread(buyer)
+    await callback.answer(sell)
+    await callback.message.edit_text(sell, reply_markup=buye)
 
 @router.message(Command('buyer'))
 @router.message(F.text == 'Скупщик')
 async def cmd_buyer(message: types.Message):
     buys = await asyncio.to_thread(buyer)
-    await message.answer(buys)
+    await message.answer('Добро пожаловать на рынок, цены меняются каждые 15 минут, цены могут быть как выше цены закупки, так и ниже. Будьте внимательны!\nЧтобы продать товар, нажмите на него: ', reply_markup=buys)
 
 @router.message(Command('shop'))
 @router.message(F.text == 'Магазин бустов')
