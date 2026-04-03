@@ -92,6 +92,7 @@ def new_garden(uid, seed_id):
                 return(f'❌ *Нет семян!* Купить в /seed_shop')
         else:
             return('⚡ *Недостаточно энергии!*')
+        
 def garden(uid):
     builder = InlineKeyboardBuilder()
     with Session() as session:

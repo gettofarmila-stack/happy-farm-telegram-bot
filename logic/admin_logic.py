@@ -12,11 +12,13 @@ def create_item(name_item, description):
         item = session.execute(select(Item).where(Item.name_key == name_item)).scalar_one_or_none()
         if item:
             logging.warning(f'Предмет {item.name_key} уже существует под айди {item.id}!')
+            return None
         else:
             n_item = Item(name_key=name_item, description=description)
             session.add(n_item)
             session.commit()
             logging.info(f'Предмет {n_item.name_key} создан под айди {n_item.id}')
+            return n_item.id
 
 def add_seed(seed, result, grow):
     with Session() as session:

@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.shop_logic import seed_shop, buy, sell_item, buyer, store
+from logic.shop_logic import seed_shop, buy, sell_item, buyer, store, second_seed_shop_page
 from keyboards.shop_menu import shop_menu_kb
 router = Router()
 
@@ -17,6 +17,11 @@ async def cmd_seed_shop(message: types.Message):
     shop = await asyncio.to_thread(seed_shop)
     await message.answer('🌵 Лобро пожаловать в магазин семян! Выбирайте! 🎄', reply_markup=shop)
 
+@router.callback_query(F.data == 'back_seed')
+async def inline_seed_shop(callback: types.Message):
+    shop = await asyncio.to_thread(seed_shop)
+    await callback.message.answer('🌵 Лобро пожаловать в магазин семян! Выбирайте! 🎄', reply_markup=shop)
+
 @router.message(Command(re.compile(r'buy_(\d+)')))
 async def cmd_buy(message: types.Message, command: CommandObject):
     item_id = message.text.split('_')[1]
@@ -26,7 +31,8 @@ async def cmd_buy(message: types.Message, command: CommandObject):
 @router.callback_query(F.data.startswith('buy_'))
 async def inline_buy(callback: types.CallbackQuery):
     item_id = callback.data.split('_')[1]
-    buye = await asyncio.to_thread(buy, callback.from_user.id, item_id)
+    amount = callback.data.split('_')[2]
+    buye = await asyncio.to_thread(buy, callback.from_user.id, item_id, amount)
     shop = await asyncio.to_thread(seed_shop)
     await callback.answer(f"✅ {buye}")
     await callback.message.edit_text(f"💰 {buye}", reply_markup=shop, parse_mode='Markdown')
@@ -51,3 +57,11 @@ async def cmd_shop(message: types.Message):
     shop = await asyncio.to_thread(store)
     await message.answer('🍩 Магазин бустов 🦄', reply_markup=types.ReplyKeyboardRemove())
     await message.answer(shop, parse_mode='Markdown')
+
+@router.callback_query(F.data.startswith('pid_'))
+async def inline_buy_processing(callback: types.CallbackQuery):
+    amount = callback.data.split('_')[1]
+    product_id = callback.data.split('_')[2]
+    shop = await asyncio.to_thread(second_seed_shop_page, callback.from_user.id, product_id, amount)
+    await callback.answer('Изменено!')
+    await callback.message.edit_reply_markup(reply_markup=shop)

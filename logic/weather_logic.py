@@ -9,7 +9,7 @@ class WeatherEvent:
         self.hydration_boost = hydration_boost
 
 rain = WeatherEvent(name='Дождь', grow_multiplier=1.5, death_chance=0.01, hydration_boost=0.5)
-drought = WeatherEvent(name='Засуха', grow_multiplier=0.5, energy_bonus=1, death_chance=0.05, hydration_boost=-0.5)
+drought = WeatherEvent(name='Засуха', grow_multiplier=0, energy_bonus=1, death_chance=0.05, hydration_boost=-0.5)
 sun = WeatherEvent(name='Солнечно', energy_bonus=3, hydration_boost=-0.05)
 frost = WeatherEvent(name='Заморозки', grow_multiplier=0.5, death_chance=0.03)
 storm = WeatherEvent(name='Гроза', death_chance=0.1, hydration_boost=0.1)

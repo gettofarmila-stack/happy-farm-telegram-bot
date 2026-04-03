@@ -2,7 +2,7 @@ import asyncio
 import logging
 from aiogram import types, Router
 from aiogram.filters.command import Command
-from logic.admin_logic import create_item, add_seed, add_product, add_buyer
+from logic.admin_logic import create_item, add_seed, add_product, add_buyer, broadcast
 from config import ADMINS
 router = Router()
 
@@ -22,7 +22,7 @@ async def cmd_newitem(message: types.Message):
     success = await asyncio.to_thread(create_item, item_name, item_desc)
     if success:
         logging.info(f'Предмет {item_name} создан!')
-        return await message.answer(f'✅ Предмет сохранён: *{item_name}*')
+        return await message.answer(f'✅ Предмет сохранён: {item_name}, под айди: {success}')
     
 @router.message(Command('new_seed'))
 async def cmd_newseed(message: types.Message):
@@ -73,3 +73,11 @@ async def cmd_add_buyer(message: types.Message):
     if result:
         return await message.answer(f'⚠️ {result}')
     await message.answer(f'✅ Скупщик настроен! ID: *{item_id}*, Диапазон: *{min_p}-{max_p}*')
+
+@router.message(Command('broadcast'))
+async def cmd_broadcast(message: types.Message):
+    if message.from_user.id not in ADMINS:
+        return await message.answer('Вы не админ')
+    args = message.text.replace('/broadcast', '')
+    await broadcast(message.bot, args)
+    await message.answer('Успешно разослал!')
