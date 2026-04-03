@@ -65,25 +65,29 @@ def collect_garden(uid):
             return res
         return "❌ *Ничего еще не созрело!*"
     
-def new_garden(uid, seed_id):
+def new_garden(uid, seed_id, amount):
     seed_id = int(seed_id)
+    amount = int(amount)
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
+        inventory = session.execute(select(InventoryItem).where(InventoryItem.item_id == seed_id, InventoryItem.owner_id == str(uid))).scalar_one_or_none()
         user_inventory = [item.item_id for item in user.inventory]
         if user.stats.energy > 1:
             seed = session.execute(select(Seed).where(Seed.seed_item_id == seed_id)).scalar_one_or_none()
             if len(user.garden) >= user.stats.level * 3:
                 return(f'❌ *Слишком большой огород!* Максимум грядок: *{user.stats.level * 3}*')
-            if seed and seed.seed_item_id in user_inventory:
-                garden = Garden(owner_id=str(uid), seed_id=seed.id)
-                session.add(garden)
-                exisiting_item = next((i for i in user.inventory if i.item_id == seed_id), None)
-                if exisiting_item:
-                    if exisiting_item.count > 1:
-                        exisiting_item.count -= 1
-                    else:
-                        session.delete(exisiting_item) 
-                user.stats.energy -= 1            
+            if seed and seed.seed_item_id in user_inventory and inventory.count >= amount:
+                while amount >= 1:                    
+                    garden = Garden(owner_id=str(uid), seed_id=seed.id)
+                    session.add(garden)
+                    amount -= 1
+                    user.stats.energy -= 1 
+                    exisiting_item = next((i for i in user.inventory if i.item_id == seed_id), None)
+                    if exisiting_item:
+                        if exisiting_item.count >= amount:
+                            exisiting_item.count -= amount
+                        else:
+                            session.delete(exisiting_item)            
                 session.commit()
                 logging.info('Игрок посадил растение')
                 return(f'🌱 *Успешно посажено!* Проверить статус: /check')
@@ -102,10 +106,22 @@ def garden(uid):
         counter = 1
         for seed in seed_list:
             if seed.seed_item_id in user_inventory:
-                builder.row(types.InlineKeyboardButton(text=f'{seed.item.name_key}', callback_data=f'plant_{seed.item.id}'))
+                builder.row(types.InlineKeyboardButton(text=f'{seed.item.name_key}', callback_data=f'sid_1_{seed.item.id}'))
                 counter += 1
         if counter == 1:
             return None
+        return builder.as_markup()
+    
+def garden_second(uid, seed_item_id, amount):
+    amount = int(amount)
+    builder = InlineKeyboardBuilder()
+    with Session() as session:
+        item = session.execute(select(InventoryItem).where(InventoryItem.item_id == seed_item_id, InventoryItem.owner_id == str(uid))).scalar_one_or_none()
+        max_items = item.count
+        builder.row(types.InlineKeyboardButton(text=f'{amount}шт.', callback_data='pass'))
+        builder.row(types.InlineKeyboardButton(text='-1', callback_data=f'sid_{amount - 1}_{seed_item_id}'), types.InlineKeyboardButton(text='MAX', callback_data=f'sid_{max_items}_{seed_item_id}'), types.InlineKeyboardButton(text='+1', callback_data=f'sid_{amount + 1}_{seed_item_id}'))
+        builder.row(types.InlineKeyboardButton(text='Посадить', callback_data=f'plant_{seed_item_id}_{amount}'))
+        builder.row(types.InlineKeyboardButton(text='Назад', callback_data='back_seeding'))
         return builder.as_markup()
     
 def watering(uid):

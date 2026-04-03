@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering
+from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering, garden_second
 from keyboards.garden_menu import garden_menu_kb
 router = Router()
 
@@ -35,6 +35,14 @@ async def cmd_garden(message: types.Message):
     else:
         await message.answer('🌚 Нечего сажать! Купи семена в магазине 🌵')
 
+@router.callback_query(F.data == 'back_seeding')
+async def inline_garden(callback: types.CallbackQuery):
+    my_garden = await asyncio.to_thread(garden, callback.from_user.id)
+    if my_garden:
+        await callback.message.edit_text('🌾 В вашем кармане эти семена:', reply_markup=my_garden)
+    else:
+        await callback.message.edit_text('🌚 Нечего сажать! Купи семена в магазине 🌵')
+
 @router.callback_query(F.data == 'not_ready_seed')
 async def inline_notready(callback: types.CallbackQuery):
     await callback.answer('🌚 Не готово ещё!')
@@ -49,10 +57,18 @@ async def cmd_buy(message: types.Message, command: CommandObject):
 @router.callback_query(F.data.startswith('plant_'))
 async def inline_plant(callback: types.CallbackQuery):
     item_id = callback.data.split('_')[1]
-    planter = await asyncio.to_thread(new_garden,callback.from_user.id , item_id)
+    amount = callback.data.split('_')[2]
+    planter = await asyncio.to_thread(new_garden, callback.from_user.id, item_id, amount)
     await callback.answer(f"Результат: {planter}")
     await callback.message.edit_text(f"🌿 Действие выполнено: {planter}", reply_markup=garden)
-    
+
+@router.callback_query(F.data.startswith('sid_'))
+async def plant_menu_inline(callback: types.CallbackQuery):
+    item_id = callback.data.split('_')[2]
+    amount = callback.data.split('_')[1]
+    plant_menu = await asyncio.to_thread(garden_second, callback.from_user.id, item_id, amount)
+    await callback.message.edit_reply_markup(reply_markup=plant_menu)
+
 @router.message(Command('water'))
 @router.message(F.text == 'Полив')
 async def cmd_water(message: types.Message):
