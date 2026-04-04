@@ -11,7 +11,7 @@ def is_register(uid):
         user = session.execute(select(User).where(User.user_id == str(uid))).scalar_one_or_none()
         return user
 
-def registation(name, username, user_id):
+def registation(name, username, user_id, referer_id):
     with Session() as session:
        
         user = session.execute(select(User).where(User.user_id == str(user_id))).scalar_one_or_none()
@@ -20,7 +20,7 @@ def registation(name, username, user_id):
             logging.warning(f'Юзер {user_id} уже есть в базе')
             return False
         else:
-            new_user = User(name=name, username=username, user_id=user_id)
+            new_user = User(name=name, username=username, user_id=user_id, referer_id=referer_id)
             new_stats = Player(balance=100, level=1, exp=0, max_energy=100, energy=100)
             new_user.stats = new_stats
             session.add(new_user)
