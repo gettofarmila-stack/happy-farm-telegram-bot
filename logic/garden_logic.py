@@ -8,19 +8,41 @@ from logic.weather_logic import weather_manager
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import types
 
-def check_my_garden(uid):
+def check_my_garden(uid, page: int = 0):
     builder = InlineKeyboardBuilder()
+    page_size = 10
     with Session() as session:
-        user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item)).where(User.user_id == str(uid))).scalar_one_or_none()
+        user = session.execute(
+            select(User)
+            .options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item))
+            .where(User.user_id == str(uid))
+        ).scalar_one_or_none()
         if user and user.garden:
-            for plot in user.garden:
+            start_idx = page * page_size
+            end_idx = start_idx + page_size
+            garden_slice = user.garden[start_idx:end_idx]
+            for plot in garden_slice: 
                 finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
-                now = datetime.now()
-                remaining_time = (finish_time - now).total_seconds()
+                remaining_time = (finish_time - datetime.now()).total_seconds()
                 if remaining_time <= 0:
-                    builder.row(types.InlineKeyboardButton(text=f'{plot.current_seed.item.name_key}: ✅ МОЖНО СОБИРАТЬ!', callback_data=f'inline_collect'))
+                    builder.row(types.InlineKeyboardButton(
+                        text=f'{plot.current_seed.item.name_key}: ✅', 
+                        callback_data='inline_collect'
+                    ))
                 else:
-                    builder.row(types.InlineKeyboardButton(text=f"{plot.current_seed.item.name_key}: ⏳ {int(remaining_time)} сек. 💧 {round(plot.hydration, 2)}", callback_data='not_ready_seed'))
+                    text = f"{plot.current_seed.item.name_key}: ⏳{int(remaining_time)}с 💧{round(plot.hydration, 1)}"
+                    builder.row(types.InlineKeyboardButton(
+                        text=text, 
+                        callback_data='not_ready_seed'
+                    ))
+            # Кнопки навигации
+            nav_buttons = []
+            if page > 0:
+                nav_buttons.append(types.InlineKeyboardButton(text="⬅️", callback_data=f"gardenpage_{page-1}"))            
+            if end_idx < len(user.garden):
+                nav_buttons.append(types.InlineKeyboardButton(text="➡️", callback_data=f"gardenpage_{page+1}"))            
+            if nav_buttons:
+                builder.row(*nav_buttons)                
             return builder.as_markup()
         return None
 

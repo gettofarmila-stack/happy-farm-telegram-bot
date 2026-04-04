@@ -20,6 +20,13 @@ async def cmd_check_garden(message: types.Message):
     else:
         await message.answer('🌻 Огород партте!')
 
+@router.callback_query(F.data.startswith('gardenpage_'))
+async def inline_check_garden(callback: types.CallbackQuery):
+    page = callback.data.split('_')[1]
+    checked = await asyncio.to_thread(check_my_garden, callback.from_user.id, int(page))
+    await callback.message.edit_reply_markup(reply_markup = checked)
+    await callback.answer()
+
 @router.callback_query(F.data == "inline_collect")
 async def process_collecting(callback: types.CallbackQuery):
     collected = await asyncio.to_thread(collect_garden, callback.from_user.id)
