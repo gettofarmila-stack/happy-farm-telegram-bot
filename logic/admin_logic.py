@@ -53,7 +53,7 @@ async def restore_all_energy_cycle(sleep_time):
         await asyncio.sleep(sleep_time)
         try:
             with Session() as session:
-                session.execute(update(Player).where(Player.energy < Player.max_energy).values(energy=func.least(Player.energy + 5 + weather_manager.current.energy_bonus, Player.max_energy)))
+                session.execute(update(Player).where(Player.energy < Player.max_energy).values(energy=func.least(Player.energy + 10 + weather_manager.current.energy_bonus, Player.max_energy)))
                 session.commit()
                 logging.info('Энергия всех юзнеров восстановлена!')
         except Exception as eror:
