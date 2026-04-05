@@ -3,7 +3,7 @@ import re
 from aiogram import Bot, Dispatcher, types, F, Router
 from aiogram.filters.command import Command
 from aiogram.filters import CommandObject
-from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering, garden_second
+from logic.garden_logic import check_my_garden, collect_garden, garden, new_garden, watering, garden_second, watering_action, weeding_action, loving_action
 from keyboards.garden_menu import garden_menu_kb
 router = Router()
 
@@ -26,6 +26,18 @@ async def inline_check_garden(callback: types.CallbackQuery):
     checked = await asyncio.to_thread(check_my_garden, callback.from_user.id, int(page))
     await callback.message.edit_reply_markup(reply_markup = checked)
     await callback.answer()
+
+@router.callback_query(F.data.startswith('action_'))
+async def inline_action_garden(callback: types.CallbackQuery):
+    action = callback.data.split('_')[1]
+    garden_id = callback.data.split('_')[2]
+    if action == 'watering':
+        act = await asyncio.to_thread(watering_action, callback.from_user.id, garden_id)
+    elif action == 'weeding':
+        act = await asyncio.to_thread(weeding_action, callback.from_user.id, garden_id)
+    elif action == 'loving':
+        await asyncio.to_thread(loving_action, callback.from_user.id, garden_id)
+    return await callback.answer(act)
 
 @router.callback_query(F.data == "inline_collect")
 async def process_collecting(callback: types.CallbackQuery):

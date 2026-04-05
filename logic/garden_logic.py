@@ -1,4 +1,5 @@
 import logging
+import random
 from database.engine import Session
 from datetime import datetime, timedelta
 from database.models import User, Garden, Seed, InventoryItem
@@ -12,29 +13,39 @@ def check_my_garden(uid, page: int = 0):
     builder = InlineKeyboardBuilder()
     page_size = 10
     with Session() as session:
-        user = session.execute(
-            select(User)
-            .options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item))
-            .where(User.user_id == str(uid))
-        ).scalar_one_or_none()
+        user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed).selectinload(Seed.item)).where(User.user_id == str(uid))).scalar_one_or_none()
         if user and user.garden:
             start_idx = page * page_size
             end_idx = start_idx + page_size
             garden_slice = user.garden[start_idx:end_idx]
-            for plot in garden_slice: 
-                finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
-                remaining_time = (finish_time - datetime.now()).total_seconds()
+            for plot in garden_slice:
+                now = datetime.now()
+                if plot.current_phase < 4 and now >= plot.next_event_time:
+                    if plot.current_phase == 0:
+                        plot.current_phase = plot.phase_counter if plot.phase_counter > 0 else 1
+                        session.commit()
+                    text = ''
+                    callback = ''
+
+                    if plot.current_phase == 1:
+                        text = f'{plot.current_seed.item.name_key}: 💧 ПОЛИТЬ'
+                        callback = f'action_watering_{plot.id}'
+                    elif plot.current_phase == 2:
+                        text = f"{plot.current_seed.item.name_key}: 🌿 ПРОПОЛОТЬ"
+                        callback = f'action_weeding_{plot.id}'
+                    elif plot.current_phase == 3:
+                        text = f'{plot.current_seed.item.name_key}: ❤️ ЗАБОТА'
+                        callback = f'action_loving_{plot.id}'
+                    if text:
+                        builder.row(types.InlineKeyboardButton(text=text, callback_data=callback))
+                        continue
+                finish_time = plot.finish_time
+                remaining_time = (finish_time - now).total_seconds()
                 if remaining_time <= 0:
-                    builder.row(types.InlineKeyboardButton(
-                        text=f'{plot.current_seed.item.name_key}: ✅', 
-                        callback_data='inline_collect'
-                    ))
+                    builder.row(types.InlineKeyboardButton(text=f'{plot.current_seed.item.name_key}: ✅', callback_data='inline_collect'))
                 else:
                     text = f"{plot.current_seed.item.name_key}: ⏳{int(remaining_time)}с 💧{round(plot.hydration, 1)}"
-                    builder.row(types.InlineKeyboardButton(
-                        text=text, 
-                        callback_data='not_ready_seed'
-                    ))
+                    builder.row(types.InlineKeyboardButton(text=text, callback_data='not_ready_seed'))
             # Кнопки навигации
             nav_buttons = []
             if page > 0:
@@ -42,18 +53,65 @@ def check_my_garden(uid, page: int = 0):
             if end_idx < len(user.garden):
                 nav_buttons.append(types.InlineKeyboardButton(text="➡️", callback_data=f"gardenpage_{page+1}"))            
             if nav_buttons:
-                builder.row(*nav_buttons)                
+                builder.row(*nav_buttons)   
+            if not builder.export():
+                builder.row(types.InlineKeyboardButton(text=f"DEBUG: Грядок в базе {len(user.garden)}", callback_data="debug"))             
             return builder.as_markup()
         return None
 
+def watering_action(uid, garden_id):
+    with Session() as session:
+        user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
+        if not user:
+            return('Не зарегестрирован')
+        if user.stats.energy < 10:
+            return('Недостаточно энергии')
+        garden = session.execute(select(Garden).options(selectinload(Garden.current_seed)).where(Garden.id == int(garden_id))).scalar_one_or_none()
+        garden.current_phase = 0
+        seconds = garden.current_seed.grow_time * random.uniform(0.3, 0.5)
+        next_time = datetime.now() + timedelta(seconds=seconds)
+        garden.next_event_time = next_time
+        garden.phase_counter += 1
+        session.commit()
+        return('Успешно полито')
+
+def weeding_action(uid, garden_id):
+    with Session() as session:
+        user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
+        if not user:
+            return('Не зарегестрирован')
+        if user.stats.energy < 10:
+            return('Недостаточно энергии')
+        garden = session.execute(select(Garden).options(selectinload(Garden.current_seed)).where(Garden.id == int(garden_id))).scalar_one_or_none()
+        garden.current_phase == 0
+        seconds = garden.current_seed.grow_time * random.uniform(0.6, 0.8)
+        next_time = datetime.now() + timedelta(seconds=seconds)
+        garden.next_event_time = next_time
+        garden.phase_counter += 1
+        session.commit()
+        return('Вы успешно пропололи растение')
+    
+def loving_action(uid, garden_id):
+    with Session() as session:
+        user = session.execute(select(User).options(selectinload(User.stats)).where(User.user_id == str(uid))).scalar_one_or_none()
+        if not user:
+            return('Не зарегестрирован')
+        if user.stats.energy < 10:
+            return('Недостаточно энергии')
+        garden = session.execute(select(Garden).options(selectinload(Garden.current_seed)).where(Garden.id == int(garden_id))).scalar_one_or_none()
+        garden.current_phase == 0
+        seconds = garden.current_seed.grow_time * random.uniform(0.9, 1)
+        next_time = datetime.now() + timedelta(seconds=seconds)
+        garden.next_event_time = next_time
+        garden.phase_counter += 1
+        session.commit()
+        return('Вы успешно позаботились о растении')
 
 def collect_garden(uid):
     with Session() as session:
         user = session.execute(select(User).options(selectinload(User.garden).selectinload(Garden.current_seed),selectinload(User.inventory)).where(User.user_id == str(uid))).scalar_one_or_none()
-
         if not user or not user.garden:
             return '🌱 Грядок нет, погоди момент!'
-
         res = '🚜 *ОТЧЕТ ПО СБОРУ УРОЖАЯ:*\n\n'
         anything_collected = False
         now = datetime.now()
@@ -64,22 +122,18 @@ def collect_garden(uid):
         for plot in user.garden:
             if plot.hydration == 0:
                 return('💧 *Полей свой огород! Влажность 0!*')
-            finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier
-            
+            finish_time = plot.start_time + timedelta(seconds=plot.current_seed.grow_time) / weather_manager.current.grow_multiplier          
             if now >= finish_time:
                 target_item_id = plot.current_seed.result_item_id
-                existing_item = next((i for i in user.inventory if i.item_id == target_item_id), None)
-                
+                existing_item = next((i for i in user.inventory if i.item_id == target_item_id), None)             
                 if existing_item:
                     existing_item.count += 1
                 else:
                     new_inv_item = InventoryItem(item_id=target_item_id, count=1)
-                    user.inventory.append(new_inv_item)
-                
+                    user.inventory.append(new_inv_item)       
                 plots_to_remove.append(plot)
                 res += f"✅ *{plot.current_seed.item.name_key}* собран!\n"
                 anything_collected = True
-
         if anything_collected:
             for p in plots_to_remove:
                 session.delete(p)
@@ -99,14 +153,17 @@ def new_garden(uid, seed_id, amount):
             if len(user.garden) >= user.stats.level * 3:
                 return(f'❌ *Слишком большой огород!* Максимум грядок: *{user.stats.level * 3}*')
             if seed and seed.seed_item_id in user_inventory and inventory.count >= amount:
-                while amount >= 1:                    
-                    garden = Garden(owner_id=str(uid), seed_id=seed.id)
+                while amount >= 1:
+                    seconds_to_event = seed.grow_time * random.uniform(0.1, 0.25)
+                    event_time = datetime.now() + timedelta(seconds=seconds_to_event) 
+                    finish_time = datetime.now() + timedelta(seconds=seed.grow_time)                
+                    garden = Garden(owner_id=str(uid), seed_id=seed.id, current_phase=0, next_event_time=event_time, finish_time=finish_time, phase_counter=0)
                     session.add(garden)
                     amount -= 1
                     user.stats.energy -= 1 
                     exisiting_item = next((i for i in user.inventory if i.item_id == seed_id), None)
                     if exisiting_item:
-                        if exisiting_item.count >= amount:
+                        if exisiting_item.count >= amount and exisiting_item.count > 1:
                             exisiting_item.count -= amount
                         else:
                             session.delete(exisiting_item)            

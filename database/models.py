@@ -62,6 +62,10 @@ class Garden(Base):
     seed_id = Column(Integer, ForeignKey('seeds.id'))
     hydration = Column(Float, default=1.0)
     start_time = Column(DateTime, default=datetime.now)
+    current_phase = Column(Integer, default=0) #0 - растет, 1 - нужен полив, 2 - нужна прополка, 3 - нужна любовь, 4 - готово
+    next_event_time = Column(DateTime) 
+    finish_time = Column(DateTime)
+    phase_counter = Column(Integer)
     
     owner = relationship('User', back_populates='garden')
     current_seed = relationship('Seed', back_populates='garden_slots')
