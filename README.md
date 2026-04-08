@@ -99,3 +99,8 @@ migrations/   # миграции Alembic
 ## 👨‍💻 Автор
 
 Саня Баранов
+
+## Фоточки
+![garden](images/garden.png)  
+![seedshop](images/seedshop.png)  
+![weather](images/weather.png)  
