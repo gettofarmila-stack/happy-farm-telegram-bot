@@ -9,6 +9,7 @@ from database.models import Product, User, Buyer, InventoryItem
 from logic.user_logic import add_item_to_user_obj
 from bot import start_time
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from config import exp_multiplier
 from aiogram import types
 
 def buy(uid, product_id, amount):
@@ -71,7 +72,7 @@ def sell_item(uid, item_id):
         if not inv_item:
             return '❌ *Нет такого предмета* в инвентаре!'
         total_price = product.now_price * inv_item.count
-        exp_gain = (product.now_price * inv_item.count) * 0.1
+        exp_gain = (product.now_price * inv_item.count) * exp_multiplier
         res = f'✅ *Продано!* {inv_item.item.name_key}\n'
         res += f'💰 Получено: *{total_price}$*\n'
         user.stats.balance += total_price
